@@ -2,28 +2,34 @@
 
 import sqlite3
 
-connection = sqlite3.connect(":memory:")
-
-cursor = connection.cursor()
-
-create_file = open("lib/create.sql")
-create_as_string = create_file.read()
-cursor.executescript(create_as_string)
-
-insert_file = open("lib/insert.sql")
-insert_as_string = insert_file.read()
-cursor.executescript(insert_as_string)
-
 class TestInsert:
-    '''Statement in insert.sql'''
+    '''Tests for insert.sql'''
+
+    def setup_method(self, method):
+        '''Setup method executed before each test method.'''
+        self.connection = sqlite3.connect(":memory:")
+        self.cursor = self.connection.cursor()
+
+        # Execute create.sql
+        with open("lib/create.sql") as create_file:
+            create_as_string = create_file.read()
+        self.cursor.executescript(create_as_string)
+
+        # Execute insert.sql
+        with open("lib/insert.sql") as insert_file:
+            insert_as_string = insert_file.read()
+        self.cursor.executescript(insert_as_string)
+
+    def teardown_method(self, method):
+        '''Teardown method executed after each test method.'''
+        self.connection.close()
 
     def test_inserts_eight_bears_into_table(self):
-        '''inserts 8 bears into bears table.'''
-        result = cursor.execute("SELECT COUNT(*) FROM bears;")
-        assert(result.fetchall()[0][0] == 8)
+        '''Test if 8 bears are inserted into the bears table.'''
+        result = self.cursor.execute("SELECT COUNT(*) FROM bears;")
+        assert result.fetchone()[0] == 8, "Incorrect number of bears inserted"
 
     def test_has_unnamed_bear(self):
-        '''inserts one unnamed bear into bears table.'''
-        result = cursor.execute("SELECT COUNT(*) FROM bears WHERE name IS NULL;")
-        assert(result.fetchall()[0][0] == 1)
-    
+        '''Test if there is one unnamed bear in the bears table.'''
+        result = self.cursor.execute("SELECT COUNT(*) FROM bears WHERE name IS NULL;")
+        assert result.fetchone()[0] == 1, "No unnamed bear found"

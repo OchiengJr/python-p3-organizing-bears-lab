@@ -2,42 +2,34 @@
 
 import sqlite3
 
-connection = sqlite3.connect(":memory:")
-
-cursor = connection.cursor()
-
-sql_file = open("lib/create.sql")
-sql_as_string = sql_file.read()
-cursor.executescript(sql_as_string)
-
 class TestCreate:
-    '''Statement in create.sql'''
+    '''Tests for create.sql'''
 
-    def test_creates_bears_with_name_column(self):
-        '''creates a table "bears" with a column "name".'''
-        assert(cursor.execute("SELECT name FROM bears;"))
+    def setup_method(self, method):
+        '''Setup method executed before each test method.'''
+        self.connection = sqlite3.connect(":memory:")
+        self.cursor = self.connection.cursor()
 
-    def test_creates_bears_with_age_column(self):
-        '''creates a table "bears" with a column "age".'''
-        assert(cursor.execute("SELECT age FROM bears;"))
+        with open("lib/create.sql") as sql_file:
+            self.sql_as_string = sql_file.read()
+        self.cursor.executescript(self.sql_as_string)
 
-    def test_creates_bears_with_sex_column(self):
-        '''creates a table "bears" with a column "sex".'''
-        assert(cursor.execute("SELECT sex FROM bears;"))
+    def teardown_method(self, method):
+        '''Teardown method executed after each test method.'''
+        self.connection.close()
 
-    def test_creates_bears_with_color_column(self):
-        '''creates a table "bears" with a column "color".'''
-        assert(cursor.execute("SELECT color FROM bears;"))
+    def test_table_creation(self):
+        '''Test if the bears table is created.'''
+        tables = [table[0] for table in self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")]
+        assert "bears" in tables
 
-    def test_creates_bears_with_temperament_column(self):
-        '''creates a table "bears" with a column "temperament".'''
-        assert(cursor.execute("SELECT temperament FROM bears;"))
+    def test_column_existence(self):
+        '''Test if all expected columns are created in the bears table.'''
+        expected_columns = ["name", "age", "sex", "color", "temperament", "alive"]
+        columns = [column[1] for column in self.cursor.execute("PRAGMA table_info(bears);")]
+        assert all(column in expected_columns for column in columns)
 
-    def test_creates_bears_with_alive_column(self):
-        '''creates a table "bears" with a column "alive".'''
-        assert(cursor.execute("SELECT alive FROM bears;"))
-
-    def test_creates_bears_with_id_pk(self):
-        '''creates a table "bears" with a primary key "id".'''
-        columns = [column for column in cursor.execute("PRAGMA table_info(bears);")]
-        assert(columns[0][1] == "id")
+    def test_primary_key(self):
+        '''Test if the bears table has a primary key "id".'''
+        columns = [column[1] for column in self.cursor.execute("PRAGMA table_info(bears);")]
+        assert columns[0] == "id"
